@@ -1,5 +1,5 @@
-fluid/multiCourantNo.C
-solid/solidRegionDiffNo.C
-multiRegionPhaseChangeFlow.C
+derivedFvPatchFields/turbulentTemperatureTwoPhaseRadCoupledMixed/turbulentTemperatureTwoPhaseRadCoupledMixedFvPatchScalarField.C
+../solid/solidRegionDiffNo.C
+chtMultiRegionTwoPhaseEulerFoam.C
 
-EXE = $(FOAM_USER_APPBIN)/multiRegionPhaseChangeFlow
+EXE = $(FOAM_APPBIN)/chtMultiRegionTwoPhaseEulerFoam
