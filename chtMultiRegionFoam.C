@@ -2,8 +2,11 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
+    \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
+-------------------------------------------------------------------------------
+    Copyright (C) 2011-2016 OpenFOAM Foundation
+    Copyright (C) 2017 OpenCFD Ltd.
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -24,10 +27,12 @@ License
 Application
     chtMultiRegionFoam
 
+Group
+    grpHeatTransferSolvers
+
 Description
-    Combination of heatConductionFoam and buoyantFoam for conjugate heat
-    transfer between solid regions and fluid regions. Both regions include
-    the fvOptions framework.
+    Transient solver for buoyant, turbulent fluid flow and solid heat
+    conduction with conjugate heat transfer between solid and fluid regions.
 
     It handles secondary fluid or solid circuits which can be coupled
     thermally with the main fluid region. i.e radiators, etc.
@@ -35,33 +40,19 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "dynamicFvMesh.H"
-#include "MULES.H" // add
-#include "subCycle.H" // add
-#include "rhoThermo.H"
-#include "interfaceProperties.H"// add
-#include "twoPhaseModelThermo.H"// add
 #include "turbulentFluidThermoModel.H"
+#include "rhoReactionThermo.H"
+#include "CombustionModel.H"
 #include "fixedGradientFvPatchFields.H"
 #include "regionProperties.H"
-#include "multiCourantNo.H"
+#include "compressibleCourantNo.H"
 #include "solidRegionDiffNo.H"
 #include "solidThermo.H"
 #include "radiationModel.H"
 #include "fvOptions.H"
 #include "coordinateSystem.H"
 #include "loopControl.H"
-#include "fixedFluxPressureFvPatchScalarField.H"
-#include "compressibleInterPhaseTransportModel.H"
-
-#include "advectionSchemes.H"
-#include "surfaceForces.H"
-
-#include "alphaContactAngleFvPatchScalarField.H"
-
-#include "singleComponentPhaseChange.H"
-
-
+#include "pressureControl.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -72,12 +63,6 @@ int main(int argc, char *argv[])
         "Transient solver for buoyant, turbulent fluid flow and solid heat"
         " conduction with conjugate heat transfer"
         " between solid and fluid regions."
-    );
-
-    Foam::argList::addBoolOption
-    (
-        "overwrite",
-        "Update and overwrite the existing mesh useful for adaptive mesh refinement"
     );
 
     #define NO_CONTROL
@@ -91,10 +76,9 @@ int main(int argc, char *argv[])
     #include "initContinuityErrs.H"
     #include "createTimeControls.H"
     #include "readSolidTimeControls.H"
-    #include "multiphaseMultiRegionCourantNo.H"
+    #include "compressibleMultiRegionCourantNo.H"
     #include "solidRegionDiffusionNo.H"
-
-    const bool overwrite = args.found("overwrite");
+    #include "setInitialMultiRegionDeltaT.H"
 
     while (runTime.run())
     {
@@ -102,14 +86,21 @@ int main(int argc, char *argv[])
         #include "readSolidTimeControls.H"
         #include "readPIMPLEControls.H"
 
-
-        #include "multiphaseMultiRegionCourantNo.H"
+        #include "compressibleMultiRegionCourantNo.H"
         #include "solidRegionDiffusionNo.H"
         #include "setMultiRegionDeltaT.H"
 
         ++runTime;
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
+
+        if (nOuterCorr != 1)
+        {
+            forAll(fluidRegions, i)
+            {
+                #include "storeOldFluidFields.H"
+            }
+        }
 
         // --- PIMPLE loop
         for (int oCorr=0; oCorr<nOuterCorr; ++oCorr)
@@ -134,7 +125,35 @@ int main(int argc, char *argv[])
                 #include "solveSolid.H"
             }
 
+            // Additional loops for energy solution only
+            if (!oCorr && nOuterCorr > 1)
+            {
+                loopControl looping(runTime, pimple, "energyCoupling");
 
+                while (looping.loop())
+                {
+                    Info<< nl << looping << nl;
+
+                    forAll(fluidRegions, i)
+                    {
+                        Info<< "\nSolving for fluid region "
+                            << fluidRegions[i].name() << endl;
+                       #include "setRegionFluidFields.H"
+                       #include "readFluidMultiRegionPIMPLEControls.H"
+                       frozenFlow = true;
+                       #include "solveFluid.H"
+                    }
+
+                    forAll(solidRegions, i)
+                    {
+                        Info<< "\nSolving for solid region "
+                            << solidRegions[i].name() << endl;
+                        #include "setRegionSolidFields.H"
+                        #include "readSolidMultiRegionPIMPLEControls.H"
+                        #include "solveSolid.H"
+                    }
+                }
+            }
         }
 
         runTime.write();
