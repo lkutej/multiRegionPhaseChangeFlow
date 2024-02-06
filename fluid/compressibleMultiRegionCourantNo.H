@@ -1,32 +1,51 @@
     scalar CoNum = -GREAT;
-    scalar alphaCoNum = -GREAT;
-    scalar capillaryNum = -GREAT;
 
-    forAll(fluidRegions, regionI)
+    forAll(fluidRegions, regioni)
     {
-        Field<scalar> CourantNos =  multiCourantNo
-        (
-            fluidRegions[regionI],
-            runTime,
-            phiFluid[regionI],
-            thermoFluid[regionI],
-            surfForcesFluid[regionI]
-        );
-        CoNum = max
-        (
-            CourantNos[0],
-            CoNum
-        );
+        if (fluidRegions[regioni].nInternalFaces())
+        {
+            const surfaceScalarField& phi =
+                phaseSystemFluid[regioni].phi();
 
-        alphaCoNum = max
-        (
-            CourantNos[1],
-            alphaCoNum
-        );
+            scalarField sumPhi
+            (
+                fvc::surfaceSum(mag(phi))().primitiveField()
+            );
 
-        capillaryNum = max
-        (
-            CourantNos[2],
-            capillaryNum
-        );
+            const surfaceScalarField& phi1 =
+                phaseSystemFluid[regioni].phase1().phiRef();
+
+            const surfaceScalarField& phi2 =
+                phaseSystemFluid[regioni].phase2().phiRef();
+
+            sumPhi = max
+            (
+                sumPhi,
+                fvc::surfaceSum(mag(phi1))().primitiveField()
+            );
+
+            sumPhi = max
+            (
+                sumPhi,
+                fvc::surfaceSum(mag(phi2))().primitiveField()
+            );
+
+
+            CoNum =
+                0.5*gMax
+                (
+                    sumPhi/fluidRegions[regioni].V().field()
+                )*runTime.deltaTValue();
+
+            scalar UrCoNum = 0.5*gMax
+            (
+                fvc::surfaceSum(mag(phi1 - phi2))().primitiveField()
+              / fluidRegions[regioni].V().field()
+            )*runTime.deltaTValue(),
+
+            CoNum = max(UrCoNum, CoNum);
+        }
     }
+
+    Info<< "Courant Number max: " << CoNum << endl;
+
