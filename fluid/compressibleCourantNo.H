@@ -2,8 +2,10 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
+-------------------------------------------------------------------------------
+    Copyright (C) 2011 OpenFOAM Foundation
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -27,31 +29,19 @@ Description
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef multiCourantNo_H
-#define multiCourantNo_H
+#ifndef compressibleCourantNo_H
+#define compressibleCourantNo_H
 
 #include "fvMesh.H"
-#include "twoPhaseModelThermo.H"
-#include "surfaceForces.H"
 
 namespace Foam
 {
-
-    Pair<scalar> multiCourantNo
+    scalar compressibleCourantNo
     (
         const fvMesh& mesh,
         const Time& runTime,
-        const surfaceScalarField& phi,
-        const twoPhaseModelThermo& mixture
-    );
-
-    Field<scalar> multiCourantNo
-    (
-        const fvMesh& mesh,
-        const Time& runTime,
-        const surfaceScalarField& phi,
-        const twoPhaseModelThermo& mixture,
-        surfaceForces& surfForces
+        const volScalarField& rho,
+        const surfaceScalarField& phi
     );
 }
 
