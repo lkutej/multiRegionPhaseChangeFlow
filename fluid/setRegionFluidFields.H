@@ -1,68 +1,68 @@
-    dynamicFvMesh& mesh = fluidRegions[i];
+    fvMesh& mesh = fluidRegions[i];
+
+    CombustionModel<rhoReactionThermo>& reaction = reactionFluid[i];
+
+    rhoReactionThermo& thermo = reaction.thermo();
+    thermo.validate(args.executable(), "h", "e");
+
+    basicMultiComponentMixture& composition = thermo.composition();
+    PtrList<volScalarField>& Y = composition.Y();
+
+    label inertIndex = -1;
+    if (Y.size())
+    {
+        const word inertSpecie(thermo.get<word>("inertSpecie"));
+        if (!composition.species().found(inertSpecie))
+        {
+            FatalIOErrorIn(args.executable().c_str(), thermo)
+                << "Inert specie " << inertSpecie
+                << " not found in available species "
+                << composition.species()
+                << exit(FatalIOError);
+        }
+        inertIndex = composition.species()[inertSpecie];
+    }
+
+    volScalarField& rho = rhoFluid[i];
+    volVectorField& U = UFluid[i];
+    surfaceScalarField& phi = phiFluid[i];
+
+    compressible::turbulenceModel& turbulence = turbulenceFluid[i];
+    volScalarField& K = KFluid[i];
+    volScalarField& dpdt = dpdtFluid[i];
+
+    volScalarField& p = thermo.p();
+    const volScalarField& psi = thermo.psi();
 
     volScalarField& p_rgh = p_rghFluid[i];
 
-    volVectorField& U = UFluid[i];
+    const volScalarField& gh = ghFluid[i];
+    const surfaceScalarField& ghf = ghfFluid[i];
 
-    surfaceScalarField& phi = phiFluid[i];
+    multivariateSurfaceInterpolationScheme<scalar>::fieldTable& fields =
+        fieldsFluid[i];
 
-    // alphaPhi
-    surfaceScalarField& alphaPhi10 = alphaPhiFluid[i];
-    tmp<surfaceScalarField> talphaPhi1Corr0;
+    volScalarField& Qdot = QdotFluid[i];
 
-    // thermo lib
-    twoPhaseModelThermo& mixture = thermoFluid[i];
+    radiation::radiationModel& rad = radiation[i];
 
-    volScalarField& alpha1(mixture.alpha1());
-    volScalarField& alpha2(mixture.alpha2());
+    IOMRFZoneList& MRF = MRFfluid[i];
+    fv::options& fvOptions = fluidFvOptions[i];
 
-    Info<< "Reading thermophysical properties\n" << endl;
+    const dimensionedScalar initialMass
+    (
+        "initialMass",
+        dimMass,
+        initialMassFluid[i]
+    );
 
-    volScalarField& p = mixture.p();
-    volScalarField& T = mixture.T();
-    volScalarField& rho1 = mixture.thermo1().rho();
-    const volScalarField& psi = mixture.psi();
-    const volScalarField& psi1 = mixture.thermo1().psi();
-    volScalarField& rho2 = mixture.thermo2().rho();
-    const volScalarField& psi2 = mixture.thermo2().psi();
-
-    volScalarField& TL = mixture.thermo1().T();
-    volScalarField& TV = mixture.thermo2().T();
-
-    volScalarField& dpdt = dpdtFluid[i];
-
-    advectionSchemes&  advector = advectionSchemesFluid[i];
-
-    volScalarField& rho = rhoFluid[i];
-
-    volScalarField& rhoCpL = rhoCpLFluid[i];
-    volScalarField& rhoCpV = rhoCpVFluid[i];
-
-    dimensionedScalar pMin = pMinFluid[i];
-
-    dimensionedScalar TMin = TMinFluid[i];
-    dimensionedScalar TMax = TMaxFluid[i];
-
-    const volScalarField& gh = surfForcesFluid[i].acc();
-
-    surfaceScalarField& rhoPhi = rhoPhiFluid[i];
-
-    surfaceScalarField& rhoCpLPhi = rhoCpLPhiFluid[i];
-    surfaceScalarField& rhoCpVPhi = rhoCpVPhiFluid[i];
-
-    volScalarField& dgdt = dgdtFluid[i];
-
-    interfaceProperties& interface = interfaceFluid[i];
     bool frozenFlow = frozenFlowFluid[i];
 
-    compressibleInterPhaseTransportModel& turbulence = turbulenceFluid[i];
+    const label pRefCell = pRefCellFluid[i];
+    const scalar pRefValue = pRefValueFluid[i];
 
-    surfaceForces& surfForces = surfForcesFluid[i];
-    singleComponentPhaseChange& phaseChange = PhaseChangeModelFluid[i];
+    const dimensionedScalar rhoMax = rhoMaxFluid[i];
+    const dimensionedScalar rhoMin = rhoMinFluid[i];
 
-    dimensionedScalar& initialMass = initialMassFluid[i];
+    const pressureControl& pressureControl = pressureControls[i];
 
-    volScalarField& K = KFluid[i];
-
-    fv::options& fvOptions = fvOptionsFluid[i];
-    IOMRFZoneList& MRF = MRFfluid[i];
