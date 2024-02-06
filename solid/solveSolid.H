@@ -3,11 +3,6 @@ if (finalIter)
     mesh.data::add("finalIteration", true);
 }
 
-if(overwrite)
-{
-    continue;
-}
-
 {
     for (int nonOrth=0; nonOrth<=nNonOrthCorr; ++nonOrth)
     {
