@@ -1,32 +1,32 @@
     scalar CoNum = -GREAT;
-    scalar alphaCoNum = -GREAT;
-    scalar capillaryNum = -GREAT;
 
-    forAll(fluidRegions, regionI)
+    forAll(fluidRegions, regioni)
     {
-        Field<scalar> CourantNos =  multiCourantNo
-        (
-            fluidRegions[regionI],
-            runTime,
-            phiFluid[regionI],
-            thermoFluid[regionI],
-            surfForcesFluid[regionI]
-        );
         CoNum = max
         (
-            CourantNos[0],
+            compressibleCourantNo
+            (
+                fluidRegions[regioni],
+                runTime,
+                rhoFluid[regioni],
+                phiFluid[regioni]
+            ),
             CoNum
         );
-
-        alphaCoNum = max
+    }
+/*
+    forAll(porousFluidRegions, porousi)
+    {
+        CoNum = max
         (
-            CourantNos[1],
-            alphaCoNum
-        );
-
-        capillaryNum = max
-        (
-            CourantNos[2],
-            capillaryNum
+            compressibleCourantNo
+            (
+                porousFluidRegions[porousi],
+                runTime,
+                rhoPorous[porousi],
+                phiPorous[porousi]
+            ),
+            CoNum
         );
     }
+*/
