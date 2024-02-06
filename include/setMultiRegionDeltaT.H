@@ -2,8 +2,10 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
+-------------------------------------------------------------------------------
+    Copyright (C) 2011 OpenFOAM Foundation
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -43,27 +45,7 @@ if (adjustTimeStep)
         DiNum = SMALL;
     }
 
-    if (alphaCoNum == -GREAT)
-    {
-        alphaCoNum = SMALL;
-    }
-
-    scalar maxAlphaCo
-    (
-        runTime.controlDict().get<scalar>("maxAlphaCo")
-    );
-
-    scalar maxCapillaryNum
-    (
-        runTime.controlDict().get<scalar>("maxCapillaryNum")
-    );
-    scalar maxDeltaTFluid =
-    min
-    (
-        maxCo/(CoNum + SMALL),
-        min(maxAlphaCo/(alphaCoNum + SMALL), maxCapillaryNum/(capillaryNum + SMALL))
-    );
-
+    scalar maxDeltaTFluid = maxCo/(CoNum + SMALL);
     scalar maxDeltaTSolid = maxDi/(DiNum + SMALL);
 
     scalar deltaTFluid =
@@ -81,6 +63,7 @@ if (adjustTimeStep)
             maxDeltaT
         )
     );
+
     Info<< "deltaT = " <<  runTime.deltaT().value() << endl;
 }
 
