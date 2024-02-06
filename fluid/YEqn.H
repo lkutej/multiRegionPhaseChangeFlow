@@ -1,55 +1,61 @@
+tmp<fv::convectionScheme<scalar>> mvConvection(nullptr);
+
+if (Y.size())
 {
+    mvConvection = tmp<fv::convectionScheme<scalar>>
+    (
+        fv::convectionScheme<scalar>::New
+        (
+            mesh,
+            fields,
+            phi,
+            mesh.divScheme("div(phi,Yi_h)")
+        )
+    );
+}
 
-    PtrList<volScalarField>& Y1 = mixture.phase1().Y();
-    PtrList<volScalarField>& Y2 = mixture.phase2().Y();
-    volScalarField muEff = turbulence.muEff();
-    if (!Y1.empty())
+{
+    reaction.correct();
+    Qdot = reaction.Qdot();
+    volScalarField Yt
+    (
+        IOobject("Yt", runTime.timeName(), mesh),
+        mesh,
+        dimensionedScalar("Yt", dimless, 0)
+    );
+
+    forAll(Y, i)
     {
-        label inertIndex1 = mixture.phase1().inertIndex();
-        volScalarField Yt(0.0*Y1[0]);
-
-        forAll(Y1, i)
+        if (i != inertIndex && composition.active(i))
         {
-            tmp<fvScalarMatrix> Y1iEqn(mixture.phase1().YiEqn(Y1[i],muEff));
+            volScalarField& Yi = Y[i];
 
-            if (Y1iEqn.valid())
-            {
+            fvScalarMatrix YiEqn
+            (
+                fvm::ddt(rho, Yi)
+              + mvConvection->fvmDiv(phi, Yi)
+              - fvm::laplacian(turbulence.muEff(), Yi)
+             ==
+                reaction.R(Yi)
+              + fvOptions(rho, Yi)
+            );
 
-                Y1iEqn->relax();
-                Y1iEqn->solve(mesh.solver("Yi"));
+            YiEqn.relax();
 
-                Y1[i].max(0.0);
-                Yt += Y1[i];
-            }
+            fvOptions.constrain(YiEqn);
+
+            YiEqn.solve(mesh.solver("Yi"));
+
+            fvOptions.correct(Yi);
+
+            Yi.max(0.0);
+            Yt += Yi;
         }
-
-        Y1[inertIndex1] = scalar(1) - Yt;
-        Y1[inertIndex1].max(0.0);
-
     }
 
-
-    if (!Y2.empty())
+    if (Y.size())
     {
-        label inertIndex2 = mixture.phase2().inertIndex();
-        volScalarField Yt(0.0*Y2[0]);
-
-        forAll(Y2, i)
-        {
-            tmp<fvScalarMatrix> Y2iEqn(mixture.phase2().YiEqn(Y2[i],muEff));
-
-            if (Y2iEqn.valid())
-            {
-
-                Y2iEqn->relax();
-                Y2iEqn->solve(mesh.solver("Yi"));
-                Y2[i].max(0.0);
-                Yt += Y2[i];
-            }
-        }
-
-        Y2[inertIndex2] = scalar(1) - Yt;
-        Y2[inertIndex2].max(0.0);
+        Y[inertIndex] = scalar(1) - Yt;
+        Y[inertIndex].max(0.0);
     }
-
 }
