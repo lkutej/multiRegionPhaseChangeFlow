@@ -1,68 +1,71 @@
-    dynamicFvMesh& mesh = fluidRegions[i];
+    fvMesh& mesh = fluidRegions[i];
+
+    twoPhaseSystem& fluid  = phaseSystemFluid[i];
+
+    phaseModel& phase1 = fluid.phase1();
+    phaseModel& phase2 = fluid.phase2();
+
+    const volScalarField& alpha1 = phase1;
+    const volScalarField& alpha2 = phase2;
+
+    volVectorField& U1 = phase1.URef();
+    surfaceScalarField& phi1 = phase1.phiRef();
+    const surfaceScalarField& alphaPhi1 = phase1.alphaPhi();
+
+    volVectorField& U2 = phase2.URef();
+    surfaceScalarField& phi2 = phase2.phiRef();
+    const surfaceScalarField& alphaPhi2 = phase2.alphaPhi();
+
+    surfaceScalarField& phi = fluid.phi();
+
+    rhoThermo& thermo1 = phase1.thermoRef();
+    rhoThermo& thermo2 = phase2.thermoRef();
+
+    thermo1.validate(args.executable(), "h", "e");
+    thermo2.validate(args.executable(), "h", "e");
+
+    volScalarField& rho1 = thermo1.rho();
+    const volScalarField& psi1 = thermo1.psi();
+
+    volScalarField& rho2 = thermo2.rho();
+    const volScalarField& psi2 = thermo2.psi();
+
+    const IOMRFZoneList& MRF = fluid.MRF();
+    fv::options& fvOptions = fluid.fvOptions();
+
+    volScalarField& p = thermo1.p();
 
     volScalarField& p_rgh = p_rghFluid[i];
 
-    volVectorField& U = UFluid[i];
+    //const dimensionedVector& g = gFluid[i];
+    const volScalarField& gh = ghFluid[i];
+    const surfaceScalarField& ghf = ghfFluid[i];
 
-    surfaceScalarField& phi = phiFluid[i];
+    const dimensionedScalar initialMass
+    (
+        "initialMass",
+        dimMass,
+        initialMassFluid[i]
+    );
 
-    // alphaPhi
-    surfaceScalarField& alphaPhi10 = alphaPhiFluid[i];
-    tmp<surfaceScalarField> talphaPhi1Corr0;
-
-    // thermo lib
-    twoPhaseModelThermo& mixture = thermoFluid[i];
-
-    volScalarField& alpha1(mixture.alpha1());
-    volScalarField& alpha2(mixture.alpha2());
-
-    Info<< "Reading thermophysical properties\n" << endl;
-
-    volScalarField& p = mixture.p();
-    volScalarField& T = mixture.T();
-    volScalarField& rho1 = mixture.thermo1().rho();
-    const volScalarField& psi = mixture.psi();
-    const volScalarField& psi1 = mixture.thermo1().psi();
-    volScalarField& rho2 = mixture.thermo2().rho();
-    const volScalarField& psi2 = mixture.thermo2().psi();
-
-    volScalarField& TL = mixture.thermo1().T();
-    volScalarField& TV = mixture.thermo2().T();
-
-    volScalarField& dpdt = dpdtFluid[i];
-
-    advectionSchemes&  advector = advectionSchemesFluid[i];
-
-    volScalarField& rho = rhoFluid[i];
-
-    volScalarField& rhoCpL = rhoCpLFluid[i];
-    volScalarField& rhoCpV = rhoCpVFluid[i];
-
-    dimensionedScalar pMin = pMinFluid[i];
-
-    dimensionedScalar TMin = TMinFluid[i];
-    dimensionedScalar TMax = TMaxFluid[i];
-
-    const volScalarField& gh = surfForcesFluid[i].acc();
-
-    surfaceScalarField& rhoPhi = rhoPhiFluid[i];
-
-    surfaceScalarField& rhoCpLPhi = rhoCpLPhiFluid[i];
-    surfaceScalarField& rhoCpVPhi = rhoCpVPhiFluid[i];
-
-    volScalarField& dgdt = dgdtFluid[i];
-
-    interfaceProperties& interface = interfaceFluid[i];
     bool frozenFlow = frozenFlowFluid[i];
 
-    compressibleInterPhaseTransportModel& turbulence = turbulenceFluid[i];
+    //const label pRefCell = pRefCellFluid[i];
+    //const scalar pRefValue = pRefValueFluid[i];
 
-    surfaceForces& surfForces = surfForcesFluid[i];
-    singleComponentPhaseChange& phaseChange = PhaseChangeModelFluid[i];
+    pimpleControl& pimple = pimpleFluid[i];
 
-    dimensionedScalar& initialMass = initialMassFluid[i];
+    const dimensionedScalar& pMin = pMinFluid[i];
 
-    volScalarField& K = KFluid[i];
-
-    fv::options& fvOptions = fvOptionsFluid[i];
-    IOMRFZoneList& MRF = MRFfluid[i];
+    // Debug fields
+/*
+    volScalarField& faceRegimes = faceRegimesFluid[i];
+    volScalarField& qc = qcFluid[i];
+    volScalarField& qFilm = qFilmFluid[i];
+    volScalarField& htcFilmBoiling = htcFilmBoilingFluid[i];
+    volScalarField& qtb = qtbFluid[i];
+    volScalarField& qSubCool = qSubCoolFluid[i];
+    volScalarField& CHFtotal = CHFtotalFluid[i];
+    volScalarField& Tdnb = TdnbFluid[i];
+    volScalarField& phiTb = phiFluid[i];
+*/
