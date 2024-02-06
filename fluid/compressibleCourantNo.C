@@ -2,8 +2,10 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
+    \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
+-------------------------------------------------------------------------------
+    Copyright (C) 2011-2016 OpenFOAM Foundation
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -23,20 +25,21 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "multiCourantNo.H"
+#include "compressibleCourantNo.H"
 #include "fvc.H"
 
-Foam::Pair<Foam::scalar> Foam::multiCourantNo
+Foam::scalar Foam::compressibleCourantNo
 (
     const fvMesh& mesh,
     const Time& runTime,
-    const surfaceScalarField& phi,
-    const twoPhaseModelThermo& mixture
+    const volScalarField& rho,
+    const surfaceScalarField& phi
 )
 {
     scalarField sumPhi
     (
-        fvc::surfaceSum(mag(phi))().internalField()
+        fvc::surfaceSum(mag(phi))().primitiveField()
+      / rho.primitiveField()
     );
 
     scalar CoNum = 0.5*gMax(sumPhi/mesh.V().field())*runTime.deltaTValue();
@@ -44,86 +47,11 @@ Foam::Pair<Foam::scalar> Foam::multiCourantNo
     scalar meanCoNum =
         0.5*(gSum(sumPhi)/gSum(mesh.V().field()))*runTime.deltaTValue();
 
-
-    scalar alphaCoNum = 0.0;
-    scalar meanAlphaCoNum = 0.0;
-
-    scalarField sumPhiAlpha
-    (
-        mixture.nearInterface()().primitiveField()
-       *fvc::surfaceSum(mag(phi))().primitiveField()
-    );
-
-    alphaCoNum = 0.5*gMax(sumPhiAlpha/mesh.V().field())*runTime.deltaTValue();
-
-    meanAlphaCoNum =
-        0.5*(gSum(sumPhiAlpha)/gSum(mesh.V().field()))*runTime.deltaTValue();
-
-
-    Info<< "Interface Courant Number mean: " << meanAlphaCoNum
-        << " max: " << alphaCoNum << endl;
-
     Info<< "Region: " << mesh.name() << " Courant Number mean: " << meanCoNum
         << " max: " << CoNum << endl;
 
-    Pair<scalar> CoNums(CoNum,alphaCoNum);
-
-    return CoNums;
+    return CoNum;
 }
 
-Foam::Field<Foam::scalar> Foam::multiCourantNo
-(
-    const fvMesh& mesh,
-    const Time& runTime,
-    const surfaceScalarField& phi,
-    const twoPhaseModelThermo& mixture,
-    surfaceForces& surfForces
-)
-{
-    const volScalarField& rho1 = mixture.thermo1().rho();
-    const volScalarField& rho2 = mixture.thermo2().rho();
-    scalarField sumPhi
-    (
-    fvc::surfaceSum(mag(phi))().internalField()
-    );
-
-    scalar CoNum = 0.5*gMax(sumPhi/mesh.V().field())*runTime.deltaTValue();
-
-    scalar meanCoNum =
-        0.5*(gSum(sumPhi)/gSum(mesh.V().field()))*runTime.deltaTValue();
-
-
-    scalar alphaCoNum = 0.0;
-    scalar meanAlphaCoNum = 0.0;
-
-    scalarField sumPhiAlpha
-    (
-        mixture.nearInterface()().primitiveField()
-       *fvc::surfaceSum(mag(phi))().primitiveField()
-    );
-
-    alphaCoNum = 0.5*gMax(sumPhiAlpha/mesh.V().field())*runTime.deltaTValue();
-
-    meanAlphaCoNum =
-        0.5*(gSum(sumPhiAlpha)/gSum(mesh.V().field()))*runTime.deltaTValue();
-
-    scalar capillaryNum = runTime.deltaTValue()/surfForces.capillaryDt(rho1,rho2);
-
-
-    Info<< "Interface Courant Number mean: " << meanAlphaCoNum
-        << " max: " << alphaCoNum << endl;
-
-    Info<< "Region: " << mesh.name() << " Courant Number mean: " << meanCoNum
-        << " max: " << CoNum << endl;
-
-    Info<< "Capillary Number: " << capillaryNum << endl;
-
-    Field<scalar> CoNums(3);
-    CoNums[0] = CoNum;
-    CoNums[1] = alphaCoNum;
-    CoNums[2] = capillaryNum;
-
-    return CoNums;
-}
 
 // ************************************************************************* //
